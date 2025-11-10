@@ -1,0 +1,84 @@
+"use client";
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Transaction } from "@/lib/types";
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+
+interface MonthlySpendingChartProps {
+  transactions: Transaction[];
+}
+
+export function MonthlySpendingChart({
+  transactions,
+}: MonthlySpendingChartProps) {
+  // Generate data for the last 6 months
+  const monthlyData = [];
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = subMonths(new Date(), i);
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+
+    const monthTransactions = transactions.filter(
+      (t) => t.date >= monthStart && t.date <= monthEnd
+    );
+
+    const totalAmount = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+    monthlyData.push({
+      month: format(monthDate, "MMM"),
+      amount: Math.round(totalAmount * 100) / 100,
+    });
+  }
+
+  return (
+    <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+      <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
+        <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">
+          Monthly Spending Trend
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis
+              dataKey="month"
+              className="text-xs"
+              tick={{ fill: "currentColor" }}
+            />
+            <YAxis
+              className="text-xs"
+              tick={{ fill: "currentColor" }}
+              tickFormatter={(value) => `$${value}`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--background))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem",
+              }}
+              formatter={(value: number) => [`$${value.toFixed(2)}`, "Amount"]}
+            />
+            <Line
+              type="monotone"
+              dataKey="amount"
+              stroke="rgb(37, 99, 235)"
+              strokeWidth={2}
+              dot={{ fill: "rgb(37, 99, 235)", r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
