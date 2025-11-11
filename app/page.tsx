@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 import {
   Receipt,
   CreditCard,
@@ -21,6 +22,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
+  const { isSignedIn } = useAuth();
   const heroRef = useRef<HTMLDivElement>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -105,9 +107,23 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/dashboard">
-              <Button>Get Started</Button>
-            </Link>
+            {isSignedIn ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <UserButton afterSignOutUrl="/" />
+              </>
+            ) : (
+              <>
+                <SignInButton mode="modal">
+                  <Button variant="ghost">Sign In</Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button>Get Started</Button>
+                </SignUpButton>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -130,11 +146,19 @@ export default function Home() {
           </p>
         </div>
         <div ref={buttonsRef} className="flex flex-col gap-4 sm:flex-row">
-          <Link href="/dashboard">
-            <Button size="lg" className="gap-2">
-              Start Tracking Free <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          {isSignedIn ? (
+            <Link href="/dashboard">
+              <Button size="lg" className="gap-2">
+                Go to Dashboard <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          ) : (
+            <SignUpButton mode="modal">
+              <Button size="lg" className="gap-2">
+                Start Tracking Free <ArrowRight className="h-4 w-4" />
+              </Button>
+            </SignUpButton>
+          )}
           <Button size="lg" variant="outline">
             Watch Demo
           </Button>
@@ -267,11 +291,19 @@ export default function Home() {
               Join thousands of users who have simplified their expense
               tracking and tax preparation with TaxReady.
             </p>
-            <Link href="/dashboard">
-              <Button size="lg" className="gap-2">
-                Start Your Free Trial <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            {isSignedIn ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="gap-2">
+                  Go to Dashboard <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <SignUpButton mode="modal">
+                <Button size="lg" className="gap-2">
+                  Start Your Free Trial <ArrowRight className="h-4 w-4" />
+                </Button>
+              </SignUpButton>
+            )}
           </CardContent>
         </Card>
       </section>

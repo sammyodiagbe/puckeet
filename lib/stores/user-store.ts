@@ -7,23 +7,34 @@ interface UserStore {
   isAuthenticated: boolean;
   setUser: (user: User | null) => void;
   logout: () => void;
+  syncWithClerk: (clerkUser: any) => void;
 }
 
 export const useUserStore = create<UserStore>(
   persist(
     (set) => ({
-      user: {
-        id: "1",
-        email: "user@example.com",
-        name: "John Doe",
-        subscriptionTier: "premium",
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01"),
-      },
-      isAuthenticated: true,
+      user: null,
+      isAuthenticated: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       logout: () => set({ user: null, isAuthenticated: false }),
+      syncWithClerk: (clerkUser) => {
+        if (!clerkUser) {
+          set({ user: null, isAuthenticated: false });
+          return;
+        }
+
+        const user: User = {
+          id: clerkUser.id,
+          email: clerkUser.primaryEmailAddress?.emailAddress || "",
+          name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "User",
+          subscriptionTier: "free", // Default to free, can be updated based on your subscription logic
+          createdAt: new Date(clerkUser.createdAt),
+          updatedAt: new Date(clerkUser.updatedAt),
+        };
+
+        set({ user, isAuthenticated: true });
+      },
     }),
-    { name: "user-store", version: 2 }
+    { name: "user-store", version: 3 }
   )
 );

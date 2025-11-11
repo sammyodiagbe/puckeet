@@ -3,24 +3,14 @@
 import { Bell, Menu, Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useUserStore } from "@/lib/stores/user-store";
+import { UserButton } from "@clerk/nextjs";
 
 interface AppHeaderProps {
   onMenuClick?: () => void;
 }
 
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
-  const { user, logout } = useUserStore();
-
   return (
     <header className="flex h-20 items-center gap-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-8">
       <Button
@@ -58,31 +48,14 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                {user?.name?.charAt(0) || "U"}
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <span className="text-xs text-muted-foreground">
-                Plan: {user?.subscriptionTier}
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserButton
+          afterSignOutUrl="/"
+          appearance={{
+            elements: {
+              avatarBox: "h-10 w-10"
+            }
+          }}
+        />
       </div>
     </header>
   );

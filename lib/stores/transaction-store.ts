@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Transaction, TransactionInput } from "../types";
 import { persist } from "../storage";
+import { useUserStore } from "./user-store";
 
 interface TransactionStore {
   transactions: Transaction[];
@@ -8,11 +9,12 @@ interface TransactionStore {
 
   // CRUD operations
   setTransactions: (transactions: Transaction[]) => void;
-  addTransaction: (transaction: TransactionInput) => void;
+  addTransaction: (transaction: TransactionInput, userId: string) => void;
   updateTransaction: (id: string, updates: Partial<TransactionInput>) => void;
   deleteTransaction: (id: string) => void;
   deleteTransactions: (ids: string[]) => void;
   getTransaction: (id: string) => Transaction | undefined;
+  getUserTransactions: (userId: string) => Transaction[];
 
   // Bulk operations
   bulkUpdateCategory: (ids: string[], category: string) => void;
@@ -31,11 +33,12 @@ export const useTransactionStore = create<TransactionStore>(
 
       setTransactions: (transactions) => set({ transactions }),
 
-      addTransaction: (transactionInput) => {
+      addTransaction: (transactionInput, userId) => {
         const now = new Date();
         const transaction: Transaction = {
           ...transactionInput,
           id: crypto.randomUUID(),
+          userId,
           createdAt: now,
           updatedAt: now,
         };
@@ -43,6 +46,10 @@ export const useTransactionStore = create<TransactionStore>(
         set((state) => ({
           transactions: [...state.transactions, transaction],
         }));
+      },
+
+      getUserTransactions: (userId) => {
+        return get().transactions.filter((t) => t.userId === userId);
       },
 
       updateTransaction: (id, updates) =>

@@ -1,35 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Crown, Mail } from "lucide-react";
+import { Crown } from "lucide-react";
 import { useUserStore } from "@/lib/stores/user-store";
-import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function ProfilePage() {
-  const { user, setUser } = useUserStore();
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-
-  const handleSave = () => {
-    if (user) {
-      setUser({ ...user, name, email });
-      toast.success("Profile updated successfully");
-    }
-  };
+  const { user: localUser } = useUserStore();
+  const { user: clerkUser } = useUser();
 
   return (
     <AppLayout>
@@ -51,34 +34,44 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-center mb-4">
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-primary-foreground text-3xl font-bold">
-                  {name.charAt(0)}
+                  {clerkUser?.firstName?.charAt(0) || localUser?.name?.charAt(0) || "U"}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                />
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Full Name</p>
+                  <p className="text-lg font-medium">
+                    {clerkUser?.firstName} {clerkUser?.lastName}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Email Address</p>
+                  <p className="text-lg font-medium">
+                    {clerkUser?.primaryEmailAddress?.emailAddress}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">User ID</p>
+                  <p className="text-sm font-mono text-muted-foreground">
+                    {clerkUser?.id}
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                />
-              </div>
+              <Separator />
 
-              <Button onClick={handleSave} className="w-full">
-                Save Changes
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                To update your name, email, or password, use the Clerk user management.
+              </p>
+
+              <Link href="https://clerk.com/docs/users/overview" target="_blank">
+                <Button variant="outline" className="w-full">
+                  Manage Account with Clerk
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -93,7 +86,7 @@ export default function ProfilePage() {
                     <Crown className="h-5 w-5 text-yellow-500" />
                     <span className="font-semibold">Current Plan</span>
                   </div>
-                  <Badge className="capitalize">{user?.subscriptionTier}</Badge>
+                  <Badge className="capitalize">{localUser?.subscriptionTier}</Badge>
                 </div>
 
                 <Separator />
@@ -142,18 +135,33 @@ export default function ProfilePage() {
                 <CardTitle>Account Security</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Button variant="outline" className="w-full">
-                    Change Password
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clerk provides built-in security features including password management
+                  and two-factor authentication.
+                </p>
 
-                <div className="space-y-2">
-                  <Label>Two-Factor Authentication</Label>
-                  <Button variant="outline" className="w-full">
-                    Enable 2FA
-                  </Button>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">Password Protection</p>
+                      <p className="text-sm text-muted-foreground">
+                        Managed by Clerk
+                      </p>
+                    </div>
+                    <Badge variant="outline">Active</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">Email Verification</p>
+                      <p className="text-sm text-muted-foreground">
+                        {clerkUser?.primaryEmailAddress?.verification?.status || "Unknown"}
+                      </p>
+                    </div>
+                    <Badge variant={clerkUser?.primaryEmailAddress?.verification?.status === "verified" ? "default" : "outline"}>
+                      {clerkUser?.primaryEmailAddress?.verification?.status === "verified" ? "Verified" : "Pending"}
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>

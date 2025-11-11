@@ -12,13 +12,24 @@ import { FileText, Eye, Trash2, Link as LinkIcon, Image as ImageIcon, Upload } f
 import { format } from "date-fns";
 import { useReceiptStore } from "@/lib/stores/receipt-store";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
+import { useUserStore } from "@/lib/stores/user-store";
 import { toast } from "sonner";
 import { Receipt } from "@/lib/types";
 
 export default function ReceiptsPage() {
-  const receipts = useReceiptStore((state) => state.receipts);
+  const { user } = useUserStore();
+  const allReceipts = useReceiptStore((state) => state.receipts);
+  const allTransactions = useTransactionStore((state) => state.transactions);
+
+  // Filter receipts and transactions for current user
+  const receipts = user?.id
+    ? allReceipts.filter(r => r.userId === user.id)
+    : [];
+  const transactions = user?.id
+    ? allTransactions.filter(t => t.userId === user.id)
+    : [];
+
   const deleteReceipt = useReceiptStore((state) => state.deleteReceipt);
-  const transactions = useTransactionStore((state) => state.transactions);
   const [viewingReceipt, setViewingReceipt] = useState<Receipt | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const uploadRef = useRef<HTMLDivElement>(null);

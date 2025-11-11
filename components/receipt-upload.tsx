@@ -7,6 +7,7 @@ import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { useReceiptStore } from "@/lib/stores/receipt-store";
+import { useUserStore } from "@/lib/stores/user-store";
 
 interface ReceiptUploadProps {
   onUpload?: () => void;
@@ -17,6 +18,7 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
+  const { user } = useUserStore();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,6 +64,11 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
   const handleUpload = useCallback(async () => {
     if (selectedFiles.length === 0) {
       toast.error("Please select files to upload");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("You must be logged in to upload receipts");
       return;
     }
 
@@ -112,7 +119,7 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
           fileSize: file.size,
           fileType: file.type,
           notes: undefined,
-        });
+        }, user.id);
       }
 
       toast.success(`${selectedFiles.length} receipt(s) uploaded successfully`);
@@ -124,7 +131,7 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
     } finally {
       setIsUploading(false);
     }
-  }, [selectedFiles, onUpload, addReceipt]);
+  }, [selectedFiles, onUpload, addReceipt, user]);
 
   return (
     <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm">

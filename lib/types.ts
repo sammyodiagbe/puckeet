@@ -1,5 +1,6 @@
 export interface Transaction {
   id: string;
+  userId: string;
   date: Date;
   amount: number;
   description: string;
@@ -16,6 +17,7 @@ export interface Transaction {
 
 export interface Receipt {
   id: string;
+  userId: string;
   transactionId?: string;
   imageUrl: string; // base64 or blob URL
   fileName: string;
@@ -30,6 +32,7 @@ export interface Receipt {
 
 export interface Category {
   id: string;
+  userId?: string; // Optional: null for default categories, set for user-custom categories
   name: string;
   color: string;
   icon?: string;

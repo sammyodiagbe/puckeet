@@ -21,13 +21,20 @@ import {
 } from "@/components/ui/popover";
 import { Download, FileText, Calendar as CalendarIcon } from "lucide-react";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
-import { mockTransactions } from "@/lib/mock-data";
+import { useUserStore } from "@/lib/stores/user-store";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
-  const { transactions, setTransactions } = useTransactionStore();
+  const { user } = useUserStore();
+  const allTransactions = useTransactionStore((state) => state.transactions);
+
+  // Filter transactions for current user
+  const transactions = user?.id
+    ? allTransactions.filter(t => t.userId === user.id)
+    : [];
+
   const [startDate, setStartDate] = useState<Date | undefined>(
     new Date(2025, 0, 1)
   );
@@ -35,14 +42,10 @@ export default function ReportsPage() {
   const [exportFormat, setExportFormat] = useState("csv");
   const [taxRelevantOnly, setTaxRelevantOnly] = useState(true);
 
-  useEffect(() => {
-    setTransactions(mockTransactions);
-  }, [setTransactions]);
-
   const filteredTransactions = transactions.filter((t) => {
     const inDateRange =
       (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate);
-    const matchesTaxFilter = !taxRelevantOnly || t.isTaxRelevant;
+    const matchesTaxFilter = !taxRelevantOnly || t.isDeductible;
     return inDateRange && matchesTaxFilter;
   });
 

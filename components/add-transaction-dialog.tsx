@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
 import { useCategoryStore } from "@/lib/stores/category-store";
+import { useUserStore } from "@/lib/stores/user-store";
 import { toast } from "sonner";
 import { Transaction } from "@/lib/types";
 
@@ -78,6 +79,7 @@ export function AddTransactionDialog({
   const addTransaction = useTransactionStore((state) => state.addTransaction);
   const updateTransaction = useTransactionStore((state) => state.updateTransaction);
   const categories = useCategoryStore((state) => state.categories);
+  const { user } = useUserStore();
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -138,6 +140,11 @@ export function AddTransactionDialog({
       toast.success("Transaction updated successfully");
     } else {
       // Add new transaction
+      if (!user?.id) {
+        toast.error("You must be logged in to add transactions");
+        return;
+      }
+
       addTransaction({
         date: data.date,
         amount: Number(data.amount),
@@ -149,7 +156,7 @@ export function AddTransactionDialog({
         receiptIds: [],
         status: "categorized",
         notes: data.notes,
-      });
+      }, user.id);
       toast.success("Transaction added successfully");
     }
 

@@ -112,9 +112,11 @@ export default function BankSyncPage() {
       );
 
       // Add transactions to store
-      newTransactions.forEach((txn) => {
-        addTransaction(txn);
-      });
+      if (user?.id) {
+        newTransactions.forEach((txn) => {
+          addTransaction(txn, user.id);
+        });
+      }
 
       // Update cursor and finish sync
       finishSync(bankId, true, data.cursor);

@@ -8,11 +8,12 @@ interface ReceiptStore {
 
   // CRUD operations
   setReceipts: (receipts: Receipt[]) => void;
-  addReceipt: (receipt: ReceiptInput) => void;
+  addReceipt: (receipt: ReceiptInput, userId: string) => void;
   updateReceipt: (id: string, updates: Partial<ReceiptInput>) => void;
   deleteReceipt: (id: string) => void;
   deleteReceipts: (ids: string[]) => void;
   getReceipt: (id: string) => Receipt | undefined;
+  getUserReceipts: (userId: string) => Receipt[];
 
   // Linking operations
   linkReceiptToTransaction: (receiptId: string, transactionId: string) => void;
@@ -21,7 +22,7 @@ interface ReceiptStore {
 
   // Query operations
   getReceiptsByTransactionId: (transactionId: string) => Receipt[];
-  getUnlinkedReceipts: () => Receipt[];
+  getUnlinkedReceipts: (userId: string) => Receipt[];
 
   // Utility
   setUploading: (isUploading: boolean) => void;
@@ -35,11 +36,12 @@ export const useReceiptStore = create<ReceiptStore>(
 
       setReceipts: (receipts) => set({ receipts }),
 
-      addReceipt: (receiptInput) => {
+      addReceipt: (receiptInput, userId) => {
         const now = new Date();
         const receipt: Receipt = {
           ...receiptInput,
           id: crypto.randomUUID(),
+          userId,
           createdAt: now,
           updatedAt: now,
         };
@@ -47,6 +49,10 @@ export const useReceiptStore = create<ReceiptStore>(
         set((state) => ({
           receipts: [...state.receipts, receipt],
         }));
+      },
+
+      getUserReceipts: (userId) => {
+        return get().receipts.filter((r) => r.userId === userId);
       },
 
       updateReceipt: (id, updates) =>
@@ -102,9 +108,9 @@ export const useReceiptStore = create<ReceiptStore>(
         return receipts.filter((r) => r.transactionId === transactionId);
       },
 
-      getUnlinkedReceipts: () => {
+      getUnlinkedReceipts: (userId) => {
         const { receipts } = get();
-        return receipts.filter((r) => !r.transactionId);
+        return receipts.filter((r) => r.userId === userId && !r.transactionId);
       },
 
       setUploading: (isUploading) => set({ isUploading }),

@@ -26,12 +26,22 @@ import {
   Upload,
 } from "lucide-react";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
+import { useUserStore } from "@/lib/stores/user-store";
 import { format } from "date-fns";
 import Link from "next/link";
 import gsap from "gsap";
+import { useUser } from "@clerk/nextjs";
 
 export default function DashboardPage() {
-  const transactions = useTransactionStore((state) => state.transactions);
+  const { user } = useUser();
+  const { user: localUser } = useUserStore();
+  const allTransactions = useTransactionStore((state) => state.transactions);
+
+  // Filter transactions for current user
+  const transactions = localUser?.id
+    ? allTransactions.filter(t => t.userId === localUser.id)
+    : [];
+
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const chartsRef = useRef<HTMLDivElement>(null);
@@ -98,7 +108,7 @@ export default function DashboardPage() {
           </p>
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              Good Evening, John
+              Good Evening, {user?.firstName || 'there'}
             </h1>
             <div className="flex gap-3">
               <AddTransactionDialog>

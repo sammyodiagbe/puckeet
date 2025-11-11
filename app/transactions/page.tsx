@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Filter, Edit, Trash2 } from "lucide-react";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
 import { useCategoryStore } from "@/lib/stores/category-store";
+import { useUserStore } from "@/lib/stores/user-store";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Transaction } from "@/lib/types";
@@ -33,7 +34,14 @@ import { Transaction } from "@/lib/types";
 const statuses = ["all", "pending", "categorized", "reviewed"];
 
 export default function TransactionsPage() {
-  const transactions = useTransactionStore((state) => state.transactions);
+  const { user } = useUserStore();
+  const allTransactions = useTransactionStore((state) => state.transactions);
+
+  // Filter transactions for current user
+  const transactions = user?.id
+    ? allTransactions.filter(t => t.userId === user.id)
+    : [];
+
   const deleteTransaction = useTransactionStore((state) => state.deleteTransaction);
   const categories = useCategoryStore((state) => state.categories);
   const [searchQuery, setSearchQuery] = useState("");
