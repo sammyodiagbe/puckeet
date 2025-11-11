@@ -34,22 +34,26 @@ export function ReceiptViewerDialog({
   open,
   onOpenChange,
 }: ReceiptViewerDialogProps) {
-  const { transactions } = useTransactionStore();
-  const { linkReceiptToTransaction, unlinkReceiptFromTransaction } =
-    useReceiptStore();
+  const transactions = useTransactionStore((state) => state.transactions);
+  const linkReceiptToTransaction = useReceiptStore((state) => state.linkReceiptToTransaction);
+  const unlinkReceiptFromTransaction = useReceiptStore((state) => state.unlinkReceiptFromTransaction);
+
   const [selectedTransactionId, setSelectedTransactionId] = useState<
     string | null
-  >(receipt.transactionId);
+  >(receipt.transactionId || null);
 
-  const linkedTransaction = transactions.find(
-    (t) => t.id === receipt.transactionId
+  const linkedTransaction = receipt.transactionId
+    ? transactions.find((t) => t.id === receipt.transactionId)
+    : null;
+
+  // Transactions that don't have this receipt linked
+  const unlinkedTransactions = transactions.filter(
+    (t) => !t.receiptIds.includes(receipt.id)
   );
-
-  const unlinkedTransactions = transactions.filter((t) => !t.receiptId);
 
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href = receipt.fileUrl;
+    link.href = receipt.imageUrl;
     link.download = receipt.fileName;
     link.click();
     toast.success("Receipt downloaded");
@@ -68,7 +72,7 @@ export function ReceiptViewerDialog({
     toast.success("Receipt unlinked from transaction");
   };
 
-  const isPDF = receipt.fileName.toLowerCase().endsWith(".pdf");
+  const isPDF = receipt.fileType === "application/pdf";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,11 +87,14 @@ export function ReceiptViewerDialog({
               <p className="text-sm text-muted-foreground">
                 Uploaded: {format(receipt.uploadDate, "PPP")}
               </p>
+              <p className="text-xs text-muted-foreground">
+                Size: {(receipt.fileSize / 1024).toFixed(1)} KB
+              </p>
               {linkedTransaction && (
                 <div className="flex items-center gap-2">
                   <LinkIcon className="h-4 w-4 text-green-600" />
                   <span className="text-sm">
-                    Linked to: {linkedTransaction.merchant} - $
+                    Linked to: {linkedTransaction.merchant || linkedTransaction.description} - $
                     {linkedTransaction.amount.toFixed(2)}
                   </span>
                 </div>
@@ -103,7 +110,7 @@ export function ReceiptViewerDialog({
             {isPDF ? (
               <div className="flex h-[500px] items-center justify-center">
                 <iframe
-                  src={receipt.fileUrl}
+                  src={receipt.imageUrl}
                   className="h-full w-full rounded-md"
                   title={receipt.fileName}
                 />
@@ -111,7 +118,7 @@ export function ReceiptViewerDialog({
             ) : (
               <div className="flex justify-center">
                 <img
-                  src={receipt.fileUrl}
+                  src={receipt.imageUrl}
                   alt={receipt.fileName}
                   className="max-h-[500px] rounded-md object-contain"
                 />
@@ -125,7 +132,7 @@ export function ReceiptViewerDialog({
               <div className="space-y-2">
                 <div className="flex items-center justify-between rounded-md border bg-muted/50 p-3">
                   <div>
-                    <p className="font-medium">{linkedTransaction.merchant}</p>
+                    <p className="font-medium">{linkedTransaction.merchant || linkedTransaction.description}</p>
                     <p className="text-sm text-muted-foreground">
                       {format(linkedTransaction.date, "PPP")} - $
                       {linkedTransaction.amount.toFixed(2)}
@@ -143,13 +150,13 @@ export function ReceiptViewerDialog({
                     value={selectedTransactionId || undefined}
                     onValueChange={setSelectedTransactionId}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a transaction" />
                     </SelectTrigger>
                     <SelectContent>
                       {unlinkedTransactions.map((transaction) => (
                         <SelectItem key={transaction.id} value={transaction.id}>
-                          {transaction.merchant} - $
+                          {transaction.merchant || transaction.description} - $
                           {transaction.amount.toFixed(2)} (
                           {format(transaction.date, "MMM dd")})
                         </SelectItem>

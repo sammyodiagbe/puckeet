@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,43 +14,131 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useSyncStore } from "@/lib/stores/sync-store";
-import { mockBankConnections } from "@/lib/mock-data";
+import { useUserStore } from "@/lib/stores/user-store";
+import { useTransactionStore } from "@/lib/stores/transaction-store";
+import { PlaidLink } from "@/components/plaid-link";
+import { BankLogo } from "@/components/bank-logo";
+import { mapPlaidTransactions, filterDuplicateTransactions } from "@/lib/plaid-utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { BankConnectionInput } from "@/lib/types";
 
 export default function BankSyncPage() {
-  const { bankConnections, addBankConnection, startSync, finishSync, removeBankConnection } =
-    useSyncStore();
+  const {
+    bankConnections,
+    addMultipleBankConnections,
+    startSync,
+    finishSync,
+    removeBankConnection,
+    getBankConnection,
+  } = useSyncStore();
+  const { user } = useUserStore();
+  const { transactions, addTransaction } = useTransactionStore();
+  const [showPlaidLink, setShowPlaidLink] = useState(false);
 
-  useEffect(() => {
-    mockBankConnections.forEach((conn) => {
-      if (!bankConnections.find((c) => c.id === conn.id)) {
-        addBankConnection(conn);
-      }
+  const handlePlaidSuccess = (accounts: any[]) => {
+    console.log("Received accounts from Plaid:", accounts);
+
+    // Convert accounts to BankConnectionInput format
+    const connections: BankConnectionInput[] = accounts.map((account) => ({
+      userId: user?.id || "1",
+      institutionId: account.institutionId,
+      institutionName: account.institutionName,
+      institutionLogo: account.institutionLogo,
+      accountId: account.accountId,
+      accountName: account.accountName,
+      accountType: account.accountType,
+      accountSubtype: account.accountSubtype,
+      mask: account.mask,
+      status: "connected" as const,
+      plaidItemId: account.plaidItemId,
+      plaidAccessToken: account.plaidAccessToken,
+    }));
+
+    console.log("Processed connections:", connections);
+
+    // Add all connections to store
+    addMultipleBankConnections(connections);
+
+    toast.success("Bank account connected!", {
+      description: `${connections.length} account${connections.length > 1 ? "s" : ""} connected successfully`,
     });
-  }, [addBankConnection, bankConnections]);
 
-  const handleSync = (bankId: string) => {
+    setShowPlaidLink(false);
+  };
+
+  const handleSync = async (bankId: string) => {
+    const connection = getBankConnection(bankId);
+    if (!connection) {
+      toast.error("Bank connection not found");
+      return;
+    }
+
     startSync(bankId);
-    toast.info("Syncing transactions...");
+    toast.info(`Syncing transactions from ${connection.institutionName}...`);
 
-    // Simulate sync
-    setTimeout(() => {
-      finishSync(bankId, true);
-      toast.success("Transactions synced successfully");
-    }, 2000);
+    try {
+      const response = await fetch("/api/plaid/sync-transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accessToken: connection.plaidAccessToken,
+          cursor: connection.cursor,
+          accountId: connection.accountId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sync transactions");
+      }
+
+      // Map Plaid transactions to our format
+      const mappedTransactions = mapPlaidTransactions(
+        data.transactions,
+        bankId
+      );
+
+      // Filter out duplicates
+      const newTransactions = filterDuplicateTransactions(
+        transactions,
+        mappedTransactions
+      );
+
+      // Add transactions to store
+      newTransactions.forEach((txn) => {
+        addTransaction(txn);
+      });
+
+      // Update cursor and finish sync
+      finishSync(bankId, true, data.cursor);
+
+      toast.success(
+        `Successfully synced ${newTransactions.length} new transaction${
+          newTransactions.length !== 1 ? "s" : ""
+        }`,
+        {
+          description: `${data.added} added, ${data.modified} modified, ${data.removed} removed`,
+        }
+      );
+    } catch (error: any) {
+      console.error("Error syncing transactions:", error);
+      finishSync(bankId, false, undefined, error.message);
+      toast.error("Failed to sync transactions", {
+        description: error.message,
+      });
+    }
   };
 
-  const handleConnect = () => {
-    toast.info("Opening Plaid connection flow...");
-    // This would trigger the Plaid integration in a real app
-  };
-
-  const handleDisconnect = (bankId: string, bankName: string) => {
+  const handleDisconnect = (bankId: string, institutionName: string) => {
     removeBankConnection(bankId);
-    toast.success(`${bankName} disconnected`);
+    toast.success(`${institutionName} disconnected`);
   };
 
   const getStatusIcon = (status: string) => {
@@ -91,10 +179,14 @@ export default function BankSyncPage() {
               Connect and manage your financial accounts
             </p>
           </div>
-          <Button onClick={handleConnect}>
-            <Plus className="mr-2 h-4 w-4" />
-            Connect Bank Account
-          </Button>
+          {user && (
+            <PlaidLink
+              userId={user.id}
+              onSuccess={handlePlaidSuccess}
+              onExit={() => setShowPlaidLink(false)}
+              buttonText="Connect Bank Account"
+            />
+          )}
         </div>
 
         <Alert>
@@ -105,82 +197,110 @@ export default function BankSyncPage() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid gap-4">
-          {bankConnections.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No bank accounts connected
-                </h3>
-                <p className="text-sm text-muted-foreground text-center mb-4">
-                  Connect your bank account to automatically import transactions
-                </p>
-                <Button onClick={handleConnect}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Connect Your First Account
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            bankConnections.map((connection) => (
-              <Card key={connection.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                        <Building2 className="h-6 w-6 text-primary" />
+        {bankConnections.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                No bank accounts connected
+              </h3>
+              <p className="text-sm text-muted-foreground text-center mb-4">
+                Connect your bank account to automatically import transactions
+              </p>
+              {user && (
+                <PlaidLink
+                  userId={user.id}
+                  onSuccess={handlePlaidSuccess}
+                  onExit={() => setShowPlaidLink(false)}
+                  buttonText="Connect Your First Account"
+                />
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Sort by newest first */}
+            {[...bankConnections]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((connection) => (
+                <Card key={connection.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4">
+                      {/* Header with Logo and Status */}
+                      <div className="flex items-start justify-between gap-3">
+                        <BankLogo
+                          institutionName={connection.institutionName}
+                          institutionLogo={connection.institutionLogo}
+                          size="md"
+                        />
+                        {getStatusBadge(connection.status)}
                       </div>
-                      <div>
-                        <h3 className="font-semibold">{connection.bankName}</h3>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {connection.accountType} account
+
+                      {/* Account Info */}
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">
+                          {connection.institutionName}
+                        </h3>
+                        <p className="text-sm font-medium text-foreground">
+                          {connection.accountName}
+                          {connection.mask && (
+                            <span className="text-muted-foreground ml-1">
+                              ••••{connection.mask}
+                            </span>
+                          )}
                         </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getStatusIcon(connection.status)}
-                          {getStatusBadge(connection.status)}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground capitalize bg-muted px-2 py-0.5 rounded inline-flex w-fit">
+                            {connection.accountSubtype}
+                          </span>
+                          {connection.lastSyncDate && (
+                            <span className="text-xs text-muted-foreground">
+                              Last synced {format(connection.lastSyncDate, "MMM dd, h:mm a")}
+                            </span>
+                          )}
                         </div>
-                        {connection.lastSyncDate && (
-                          <p className="text-xs text-muted-foreground">
-                            Last synced:{" "}
-                            {format(connection.lastSyncDate, "MMM dd, yyyy")}
+                        {connection.errorMessage && (
+                          <p className="text-xs text-destructive">
+                            {connection.errorMessage}
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-2">
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2 border-t">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleSync(connection.id)}
                           disabled={connection.status === "syncing"}
+                          className="gap-2 flex-1"
                         >
                           <RefreshCw
                             className={`h-4 w-4 ${
                               connection.status === "syncing" ? "animate-spin" : ""
                             }`}
                           />
+                          Sync
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            handleDisconnect(connection.id, connection.bankName)
+                            handleDisconnect(
+                              connection.id,
+                              connection.institutionName
+                            )
                           }
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        )}
 
         <Card>
           <CardHeader>

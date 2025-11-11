@@ -8,8 +8,7 @@ import { ReceiptViewerDialog } from "@/components/receipt-viewer-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Eye, Trash2, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
-import { mockReceipts, mockTransactions } from "@/lib/mock-data";
+import { FileText, Eye, Trash2, Link as LinkIcon, Image as ImageIcon, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { useReceiptStore } from "@/lib/stores/receipt-store";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
@@ -17,19 +16,13 @@ import { toast } from "sonner";
 import { Receipt } from "@/lib/types";
 
 export default function ReceiptsPage() {
-  const { receipts, setReceipts, deleteReceipt } = useReceiptStore();
-  const { transactions } = useTransactionStore();
+  const receipts = useReceiptStore((state) => state.receipts);
+  const deleteReceipt = useReceiptStore((state) => state.deleteReceipt);
+  const transactions = useTransactionStore((state) => state.transactions);
   const [viewingReceipt, setViewingReceipt] = useState<Receipt | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const uploadRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Initialize with mock data if empty
-    if (receipts.length === 0) {
-      setReceipts(mockReceipts);
-    }
-  }, [receipts.length, setReceipts]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -77,56 +70,83 @@ export default function ReceiptsPage() {
           <ReceiptUpload />
         </div>
 
-        <Card ref={galleryRef} className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
-          <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
-            <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">Receipt Gallery ({receipts.length})</CardTitle>
+        <Card ref={galleryRef} className="border-0 bg-white dark:bg-zinc-950 shadow-sm">
+          <CardHeader className="border-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">
+                Receipt Gallery ({receipts.length})
+              </CardTitle>
+              {receipts.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {receipts.filter(r => r.transactionId).length} linked
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {receipts.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">
-                    No receipts uploaded yet. Upload your first receipt above!
-                  </p>
+                <div className="col-span-full text-center py-16">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/30">
+                      <Upload className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-zinc-900 dark:text-white">
+                        No receipts yet
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload your first receipt to get started
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 receipts.map((receipt) => {
-                  const linkedTransaction = transactions.find(
-                    (t) => t.id === receipt.transactionId
-                  );
+                  const linkedTransaction = receipt.transactionId
+                    ? transactions.find((t) => t.id === receipt.transactionId)
+                    : null;
 
-                  const isImage = receipt.thumbnailUrl || receipt.fileUrl.startsWith("data:image/");
+                  const isImage = receipt.imageUrl.startsWith("data:image/");
+                  const isPDF = receipt.fileType === "application/pdf";
 
                   return (
-                    <Card key={receipt.id} className="receipt-card">
+                    <Card key={receipt.id} className="receipt-card border-0 hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
-                        <div className="mb-4 flex h-32 items-center justify-center rounded-md bg-muted overflow-hidden">
-                          {isImage && receipt.thumbnailUrl ? (
+                        <div className="mb-4 flex h-40 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                          {isImage ? (
                             <img
-                              src={receipt.thumbnailUrl}
+                              src={receipt.thumbnailUrl || receipt.imageUrl}
                               alt={receipt.fileName}
                               className="h-full w-full object-cover"
                             />
-                          ) : isImage ? (
-                            <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                          ) : isPDF ? (
+                            <FileText className="h-12 w-12 text-red-500" />
                           ) : (
-                            <FileText className="h-12 w-12 text-muted-foreground" />
+                            <ImageIcon className="h-12 w-12 text-muted-foreground" />
                           )}
                         </div>
                         <div className="space-y-2">
-                          <h3 className="truncate font-semibold text-sm">
+                          <h3 className="truncate font-semibold text-sm text-zinc-900 dark:text-white">
                             {receipt.fileName}
                           </h3>
                           <p className="text-xs text-muted-foreground">
-                            Uploaded: {format(receipt.uploadDate, "MMM dd, yyyy")}
+                            {format(receipt.uploadDate, "MMM dd, yyyy")}
                           </p>
-                          {linkedTransaction && (
-                            <div className="flex items-center gap-1 text-xs">
+                          <div className="text-xs text-muted-foreground">
+                            {(receipt.fileSize / 1024).toFixed(1)} KB
+                          </div>
+                          {linkedTransaction ? (
+                            <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                               <LinkIcon className="h-3 w-3" />
                               <span className="truncate">
-                                {linkedTransaction.merchant}
+                                {linkedTransaction.merchant || linkedTransaction.description}
                               </span>
                             </div>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Unlinked
+                            </Badge>
                           )}
                           <div className="flex gap-2 pt-2">
                             <Button
@@ -141,7 +161,7 @@ export default function ReceiptsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-destructive"
+                              className="text-destructive hover:text-destructive"
                               onClick={() => {
                                 deleteReceipt(receipt.id);
                                 toast.success("Receipt deleted");

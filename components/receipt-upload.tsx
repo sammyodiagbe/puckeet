@@ -7,17 +7,16 @@ import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { useReceiptStore } from "@/lib/stores/receipt-store";
-import { Receipt } from "@/lib/types";
 
 interface ReceiptUploadProps {
-  onUpload?: (receipts: Receipt[]) => void;
+  onUpload?: () => void;
 }
 
 export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const { addReceipt } = useReceiptStore();
+  const addReceipt = useReceiptStore((state) => state.addReceipt);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -67,11 +66,10 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
     }
 
     setIsUploading(true);
-    const uploadedReceipts: Receipt[] = [];
 
     try {
       for (const file of selectedFiles) {
-        let fileUrl: string;
+        let imageUrl: string;
         let thumbnailUrl: string | undefined;
 
         if (file.type.startsWith("image/")) {
@@ -93,34 +91,32 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
           const thumbnailFile = await imageCompression(file, thumbnailOptions);
 
           // Convert to base64
-          fileUrl = await imageCompression.getDataUrlFromFile(compressedFile);
+          imageUrl = await imageCompression.getDataUrlFromFile(compressedFile);
           thumbnailUrl = await imageCompression.getDataUrlFromFile(
             thumbnailFile
           );
         } else {
           // For PDFs, just convert to base64
-          fileUrl = await new Promise<string>((resolve) => {
+          imageUrl = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(file);
           });
         }
 
-        const receipt: Receipt = {
-          id: Math.random().toString(36).substring(7),
-          fileName: file.name,
-          fileUrl,
+        addReceipt({
+          imageUrl,
           thumbnailUrl,
+          fileName: file.name,
           uploadDate: new Date(),
-          transactionId: null,
-        };
-
-        addReceipt(receipt);
-        uploadedReceipts.push(receipt);
+          fileSize: file.size,
+          fileType: file.type,
+          notes: undefined,
+        });
       }
 
       toast.success(`${selectedFiles.length} receipt(s) uploaded successfully`);
-      onUpload?.(uploadedReceipts);
+      onUpload?.();
       setSelectedFiles([]);
     } catch (error) {
       console.error("Error uploading receipts:", error);
@@ -131,7 +127,7 @@ export function ReceiptUpload({ onUpload }: ReceiptUploadProps) {
   }, [selectedFiles, onUpload, addReceipt]);
 
   return (
-    <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+    <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm">
       <CardContent className="p-8">
         <div
           className={`relative rounded-lg border-2 border-dashed p-12 text-center transition-colors ${

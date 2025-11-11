@@ -21,8 +21,13 @@ type Persist = <
 export const persist: Persist =
   (config, { name, version = 1, migrate }) =>
   (set, get, api) => {
+    // Check if we're in a browser environment
+    const isBrowser = typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
     const storage = {
       getItem: (key: string): any => {
+        if (!isBrowser) return null;
+
         const str = localStorage.getItem(key);
         if (!str) return null;
 
@@ -47,6 +52,8 @@ export const persist: Persist =
         }
       },
       setItem: (key: string, value: any): void => {
+        if (!isBrowser) return;
+
         try {
           const str = JSON.stringify(
             {
@@ -67,12 +74,13 @@ export const persist: Persist =
         }
       },
       removeItem: (key: string): void => {
+        if (!isBrowser) return;
         localStorage.removeItem(key);
       },
     };
 
-    // Load persisted state
-    const persistedState = storage.getItem(name);
+    // Load persisted state (only in browser)
+    const persistedState = isBrowser ? storage.getItem(name) : null;
 
     // Create the store
     const store = config(
@@ -97,6 +105,8 @@ export const persist: Persist =
  * Clear all app data from localStorage
  */
 export function clearAllData() {
+  if (typeof window === "undefined") return;
+
   const keys = Object.keys(localStorage);
   keys.forEach((key) => {
     if (
@@ -115,6 +125,8 @@ export function clearAllData() {
  * Export all data as JSON
  */
 export function exportData() {
+  if (typeof window === "undefined") return {};
+
   const data: Record<string, any> = {};
   const keys = Object.keys(localStorage);
 
@@ -141,6 +153,8 @@ export function exportData() {
  * Import data from JSON backup
  */
 export function importData(data: Record<string, any>) {
+  if (typeof window === "undefined") return;
+
   Object.entries(data).forEach(([key, value]) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -154,6 +168,15 @@ export function importData(data: Record<string, any>) {
  * Get storage statistics
  */
 export function getStorageStats() {
+  if (typeof window === "undefined") {
+    return {
+      totalSize: 0,
+      sizeInKB: 0,
+      sizeInMB: 0,
+      itemCount: 0,
+    };
+  }
+
   let totalSize = 0;
   const keys = Object.keys(localStorage);
 

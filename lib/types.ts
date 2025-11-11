@@ -131,3 +131,54 @@ export interface ExportOptions {
   onlyDeductible: boolean;
   categories?: string[];
 }
+
+// User types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  subscriptionTier: "free" | "premium" | "enterprise";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Bank connection types for Plaid integration
+export interface BankConnection {
+  id: string;
+  userId: string;
+  institutionId: string;
+  institutionName: string;
+  institutionLogo?: string; // Base64 logo from Plaid
+  accountId: string;
+  accountName: string;
+  accountType: "depository" | "credit" | "loan" | "investment" | "other";
+  accountSubtype: string;
+  mask?: string; // Last 4 digits of account
+  status: "connected" | "syncing" | "error" | "disconnected";
+  lastSyncDate?: Date;
+  plaidItemId: string;
+  plaidAccessToken: string;
+  cursor?: string; // For incremental transaction sync
+  errorCode?: string;
+  errorMessage?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type BankConnectionInput = Omit<
+  BankConnection,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+// Plaid transaction response type (for mapping to our Transaction model)
+export interface PlaidTransactionData {
+  transaction_id: string;
+  account_id: string;
+  amount: number;
+  date: string;
+  name: string;
+  merchant_name?: string;
+  category?: string[];
+  pending: boolean;
+  payment_channel: string;
+}

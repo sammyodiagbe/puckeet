@@ -113,10 +113,17 @@ export function CategoryBreakdownChart({
               verticalAlign="bottom"
               height={60}
               iconType="circle"
-              wrapperStyle={{ fontSize: "13px", paddingTop: "10px" }}
+              wrapperStyle={{
+                fontSize: "13px",
+                paddingTop: "10px",
+              }}
               formatter={(value, entry: any) => {
                 const percentage = ((entry.payload.value / chartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
-                return `${value} (${percentage}%)`;
+                return (
+                  <span style={{ color: "hsl(var(--foreground))" }}>
+                    {value} ({percentage}%)
+                  </span>
+                );
               }}
             />
           </PieChart>

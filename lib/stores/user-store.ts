@@ -17,11 +17,13 @@ export const useUserStore = create<UserStore>(
         email: "user@example.com",
         name: "John Doe",
         subscriptionTier: "premium",
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
       },
       isAuthenticated: true,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       logout: () => set({ user: null, isAuthenticated: false }),
     }),
-    { name: "user-store", version: 1 }
+    { name: "user-store", version: 2 }
   )
 );
