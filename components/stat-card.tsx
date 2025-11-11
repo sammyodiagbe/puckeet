@@ -10,7 +10,7 @@ interface StatCardProps {
 
 export function StatCard({ title, value, description, icon: Icon }: StatCardProps) {
   return (
-    <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{title}</CardTitle>
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/30">

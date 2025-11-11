@@ -41,19 +41,9 @@ import { Calendar as CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
+import { useCategoryStore } from "@/lib/stores/category-store";
 import { toast } from "sonner";
-import { Transaction, TransactionCategory } from "@/lib/types";
-
-const categories: { value: TransactionCategory; label: string }[] = [
-  { value: "meals", label: "Meals & Entertainment" },
-  { value: "travel", label: "Travel" },
-  { value: "office_supplies", label: "Office Supplies" },
-  { value: "software", label: "Software & Subscriptions" },
-  { value: "utilities", label: "Utilities" },
-  { value: "professional_services", label: "Professional Services" },
-  { value: "marketing", label: "Marketing" },
-  { value: "other", label: "Other" },
-];
+import { Transaction } from "@/lib/types";
 
 const transactionSchema = z.object({
   date: z.date({
@@ -62,11 +52,11 @@ const transactionSchema = z.object({
   amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Amount must be a positive number",
   }),
-  merchant: z.string().min(1, "Merchant is required"),
+  merchant: z.string().optional(),
   description: z.string().min(1, "Description is required"),
-  category: z.string().nullable(),
+  category: z.string().min(1, "Category is required"),
   tags: z.array(z.string()).default([]),
-  isTaxRelevant: z.boolean().default(false),
+  isDeductible: z.boolean().default(false),
   notes: z.string().optional(),
 });
 
@@ -85,7 +75,9 @@ export function AddTransactionDialog({
 }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
-  const { addTransaction, updateTransaction } = useTransactionStore();
+  const addTransaction = useTransactionStore((state) => state.addTransaction);
+  const updateTransaction = useTransactionStore((state) => state.updateTransaction);
+  const categories = useCategoryStore((state) => state.categories);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -93,11 +85,11 @@ export function AddTransactionDialog({
       ? {
           date: transaction.date,
           amount: transaction.amount.toString(),
-          merchant: transaction.merchant,
+          merchant: transaction.merchant || "",
           description: transaction.description,
           category: transaction.category,
           tags: transaction.tags,
-          isTaxRelevant: transaction.isTaxRelevant,
+          isDeductible: transaction.isDeductible,
           notes: transaction.notes || "",
         }
       : {
@@ -105,9 +97,9 @@ export function AddTransactionDialog({
           amount: "",
           merchant: "",
           description: "",
-          category: null,
+          category: "",
           tags: [],
-          isTaxRelevant: false,
+          isDeductible: false,
           notes: "",
         },
   });
@@ -138,28 +130,26 @@ export function AddTransactionDialog({
         description: data.description,
         category: data.category,
         tags: data.tags,
-        isTaxRelevant: data.isTaxRelevant,
+        isDeductible: data.isDeductible,
         notes: data.notes,
-        status: data.category ? "categorized" : "uncategorized",
+        status: "categorized",
+        receiptIds: transaction.receiptIds,
       });
       toast.success("Transaction updated successfully");
     } else {
       // Add new transaction
-      const newTransaction: Transaction = {
-        id: Math.random().toString(36).substring(7),
+      addTransaction({
         date: data.date,
         amount: Number(data.amount),
         merchant: data.merchant,
         description: data.description,
         category: data.category,
         tags: data.tags,
-        isTaxRelevant: data.isTaxRelevant,
-        receiptId: null,
-        status: data.category ? "categorized" : "uncategorized",
+        isDeductible: data.isDeductible,
+        receiptIds: [],
+        status: "categorized",
         notes: data.notes,
-        bankAccountId: "manual",
-      };
-      addTransaction(newTransaction);
+      });
       toast.success("Transaction added successfully");
     }
 
@@ -301,14 +291,14 @@ export function AddTransactionDialog({
                     value={field.value || undefined}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {categories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -378,7 +368,7 @@ export function AddTransactionDialog({
 
             <FormField
               control={form.control}
-              name="isTaxRelevant"
+              name="isDeductible"
               render={({ field }) => (
                 <FormItem className="flex items-center gap-2 space-y-0">
                   <FormControl>

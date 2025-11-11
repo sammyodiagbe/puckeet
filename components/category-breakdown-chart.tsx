@@ -16,14 +16,14 @@ interface CategoryBreakdownChartProps {
 }
 
 const COLORS = [
-  "#2563eb", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#6b7280", // gray
+  "#3B82F6", // blue-500
+  "#10B981", // emerald-500
+  "#F59E0B", // amber-500
+  "#EF4444", // red-500
+  "#8B5CF6", // violet-500
+  "#EC4899", // pink-500
+  "#14B8A6", // teal-500
+  "#F97316", // orange-500
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -56,14 +56,14 @@ export function CategoryBreakdownChart({
 
   if (chartData.length === 0) {
     return (
-      <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
-        <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
+      <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm">
+        <CardHeader className="border-0">
           <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">
             Category Breakdown
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+          <div className="flex h-[350px] items-center justify-center text-muted-foreground">
             No categorized transactions yet
           </div>
         </CardContent>
@@ -72,31 +72,31 @@ export function CategoryBreakdownChart({
   }
 
   return (
-    <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
-      <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
+    <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm">
+      <CardHeader className="border-0">
         <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">
           Category Breakdown
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={350}>
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) =>
-                `${name}: ${(percent * 100).toFixed(0)}%`
-              }
-              outerRadius={80}
+              cy="45%"
+              innerRadius={70}
+              outerRadius={110}
               fill="#8884d8"
+              paddingAngle={2}
               dataKey="value"
+              label={false}
             >
               {chartData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}
+                  className="hover:opacity-80 transition-opacity cursor-pointer"
                 />
               ))}
             </Pie>
@@ -105,14 +105,19 @@ export function CategoryBreakdownChart({
                 backgroundColor: "hsl(var(--background))",
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "0.5rem",
+                padding: "8px 12px",
               }}
-              formatter={(value: number) => `$${value.toFixed(2)}`}
+              formatter={(value: number) => [`$${value.toFixed(2)}`, "Amount"]}
             />
             <Legend
               verticalAlign="bottom"
-              height={36}
+              height={60}
               iconType="circle"
-              wrapperStyle={{ fontSize: "12px" }}
+              wrapperStyle={{ fontSize: "13px", paddingTop: "10px" }}
+              formatter={(value, entry: any) => {
+                const percentage = ((entry.payload.value / chartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1);
+                return `${value} (${percentage}%)`;
+              }}
             />
           </PieChart>
         </ResponsiveContainer>

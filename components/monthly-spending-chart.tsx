@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,25 +40,33 @@ export function MonthlySpendingChart({
   }
 
   return (
-    <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
-      <CardHeader className="border-b border-zinc-200 dark:border-zinc-800">
+    <Card className="border-0 bg-white dark:bg-zinc-950 shadow-sm">
+      <CardHeader className="border-0">
         <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-white">
           Monthly Spending Trend
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <AreaChart data={monthlyData}>
+            <defs>
+              <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="rgb(37, 99, 235)" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="rgb(37, 99, 235)" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
             <XAxis
               dataKey="month"
               className="text-xs"
               tick={{ fill: "currentColor" }}
+              axisLine={false}
             />
             <YAxis
               className="text-xs"
               tick={{ fill: "currentColor" }}
               tickFormatter={(value) => `$${value}`}
+              axisLine={false}
             />
             <Tooltip
               contentStyle={{
@@ -68,15 +76,16 @@ export function MonthlySpendingChart({
               }}
               formatter={(value: number) => [`$${value.toFixed(2)}`, "Amount"]}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="amount"
               stroke="rgb(37, 99, 235)"
               strokeWidth={2}
+              fill="url(#colorAmount)"
               dot={{ fill: "rgb(37, 99, 235)", r: 4 }}
               activeDot={{ r: 6 }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

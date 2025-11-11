@@ -160,7 +160,7 @@ export default function ReportsPage() {
               <div className="grid gap-2">
                 <Label>Export Format</Label>
                 <Select value={exportFormat} onValueChange={setExportFormat}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -179,7 +179,7 @@ export default function ReportsPage() {
                     setTaxRelevantOnly(value === "tax-only")
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
