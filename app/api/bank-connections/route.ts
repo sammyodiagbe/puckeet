@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-helpers";
 import { currentUser } from "@clerk/nextjs/server";
 import { ensureUserExists } from "@/lib/api-helpers";
+import { syncTransactionsFromPlaid } from "@/lib/plaid-sync";
 
 /**
  * GET /api/bank-connections
@@ -178,14 +179,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Trigger initial transaction sync in background
-    // For now, return success immediately
-    // TODO: Implement background job for syncing
+    // Trigger initial transaction sync
+    console.log(`Starting initial sync for connection ${connection.id}`);
+    const syncResult = await syncTransactionsFromPlaid(connection.id, userId);
 
     return createSuccessResponse(
       {
-        ...connection,
-        plaid_access_token: "***",
+        connection: {
+          ...connection,
+          plaid_access_token: "***",
+        },
+        initial_sync: {
+          success: syncResult.success,
+          transactions_added: syncResult.added,
+          transactions_modified: syncResult.modified,
+          transactions_removed: syncResult.removed,
+          has_more: syncResult.has_more,
+        },
       },
       201
     );

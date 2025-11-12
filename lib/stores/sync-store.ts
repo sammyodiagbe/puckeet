@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { BankConnection, BankConnectionInput } from "../types";
 import { persist } from "../storage";
+import { generateUUID } from "../utils/uuid";
 
 interface SyncStore {
   bankConnections: BankConnection[];
@@ -34,7 +35,7 @@ export const useSyncStore = create<SyncStore>(
       addBankConnection: (connectionInput) => {
         const connection: BankConnection = {
           ...connectionInput,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -46,7 +47,7 @@ export const useSyncStore = create<SyncStore>(
       addMultipleBankConnections: (connectionsInput) => {
         const connections: BankConnection[] = connectionsInput.map((input) => ({
           ...input,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }));

@@ -145,7 +145,17 @@ export async function DELETE(
       );
     }
 
-    // Delete the database record first
+    // First, unlink from all transactions (remove from junction table)
+    try {
+      await supabaseAdmin
+        .from("transaction_receipts")
+        .delete()
+        .eq("receipt_id", id);
+    } catch (unlinkError) {
+      console.warn("Failed to unlink receipt from transactions:", unlinkError);
+    }
+
+    // Delete the database record
     const { error: deleteError } = await supabaseAdmin
       .from("receipts")
       .delete()

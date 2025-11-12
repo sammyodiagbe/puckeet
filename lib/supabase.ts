@@ -8,10 +8,26 @@ export function isSupabaseConfigured() {
   );
 }
 
+// Validate environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error(
+    "Missing Supabase environment variables. Please add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your .env.local file.\n\n" +
+    "You can find these values in your Supabase project settings:\n" +
+    "1. Go to https://supabase.com/dashboard\n" +
+    "2. Select your project\n" +
+    "3. Go to Settings > API\n" +
+    "4. Copy 'Project URL' as NEXT_PUBLIC_SUPABASE_URL\n" +
+    "5. Copy 'service_role key' as SUPABASE_SERVICE_ROLE_KEY"
+  );
+}
+
 // Create a Supabase client with service role key for server-side operations
 export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  supabaseUrl,
+  supabaseServiceKey,
   {
     auth: {
       autoRefreshToken: false,

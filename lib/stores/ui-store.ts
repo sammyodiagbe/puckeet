@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { UIState, ToastMessage } from "../types";
+import { generateUUID } from "../utils/uuid";
 
 interface UIStore extends UIState {
   // Modal operations
@@ -105,7 +106,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showToast: (toast) => {
     const toastMessage: ToastMessage = {
       ...toast,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       duration: toast.duration || 3000,
     };
 

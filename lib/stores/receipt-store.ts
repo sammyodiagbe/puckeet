@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Receipt, ReceiptInput } from "../types";
 import { persist } from "../storage";
+import { generateUUID } from "../utils/uuid";
 
 interface ReceiptStore {
   receipts: Receipt[];
@@ -40,7 +41,7 @@ export const useReceiptStore = create<ReceiptStore>(
         const now = new Date();
         const receipt: Receipt = {
           ...receiptInput,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           userId,
           createdAt: now,
           updatedAt: now,

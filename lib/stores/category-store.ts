@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Category, CategoryInput, Tag, TagInput } from "../types";
 import { persist } from "../storage";
+import { generateUUID } from "../utils/uuid";
 
 interface CategoryStore {
   categories: Category[];
@@ -96,7 +97,7 @@ export const useCategoryStore = create<CategoryStore>(
         const now = new Date();
         const category: Category = {
           ...categoryInput,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           createdAt: now,
           updatedAt: now,
         };
@@ -135,7 +136,7 @@ export const useCategoryStore = create<CategoryStore>(
         const now = new Date();
         const tag: Tag = {
           ...tagInput,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           usageCount: 0,
           createdAt: now,
           updatedAt: now,
@@ -198,7 +199,7 @@ export const useCategoryStore = create<CategoryStore>(
           const now = new Date();
           const defaultCategories = DEFAULT_CATEGORIES.map((cat) => ({
             ...cat,
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             createdAt: now,
             updatedAt: now,
           }));

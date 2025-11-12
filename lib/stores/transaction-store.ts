@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Transaction, TransactionInput } from "../types";
 import { persist } from "../storage";
 import { useUserStore } from "./user-store";
+import { generateUUID } from "../utils/uuid";
 
 interface TransactionStore {
   transactions: Transaction[];
@@ -9,7 +10,7 @@ interface TransactionStore {
 
   // CRUD operations
   setTransactions: (transactions: Transaction[]) => void;
-  addTransaction: (transaction: TransactionInput, userId: string) => void;
+  addTransaction: (transaction: TransactionInput, userId: string) => Transaction;
   updateTransaction: (id: string, updates: Partial<TransactionInput>) => void;
   deleteTransaction: (id: string) => void;
   deleteTransactions: (ids: string[]) => void;
@@ -37,7 +38,7 @@ export const useTransactionStore = create<TransactionStore>(
         const now = new Date();
         const transaction: Transaction = {
           ...transactionInput,
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           userId,
           createdAt: now,
           updatedAt: now,
@@ -46,6 +47,8 @@ export const useTransactionStore = create<TransactionStore>(
         set((state) => ({
           transactions: [...state.transactions, transaction],
         }));
+
+        return transaction;
       },
 
       getUserTransactions: (userId) => {

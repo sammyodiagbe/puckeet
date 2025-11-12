@@ -9,6 +9,7 @@ import {
   TransactionInput,
   ReceiptInput,
 } from "./types";
+import { generateUUID } from "./utils/uuid";
 
 // Sample data arrays
 const DESCRIPTIONS = [
@@ -240,7 +241,7 @@ export function generateMockReceipts(count: number = 20): ReceiptInput[] {
 export function generateMockTags(): Tag[] {
   const now = new Date();
   return TAG_NAMES.map((name, index) => ({
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name,
     color: TAG_COLORS[index % TAG_COLORS.length],
     usageCount: Math.floor(Math.random() * 20),
@@ -272,7 +273,7 @@ export function generateMockDataset(
   const now = new Date();
   const transactions: Transaction[] = transactionInputs.map((input) => ({
     ...input,
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     createdAt: now,
     updatedAt: now,
   }));
@@ -289,7 +290,7 @@ export function generateMockDataset(
     ) {
       transactionId = transactions[index].id;
       // Add receipt ID to the transaction
-      const receiptId = crypto.randomUUID();
+      const receiptId = generateUUID();
       transactions[index].receiptIds.push(receiptId);
 
       return {
@@ -304,7 +305,7 @@ export function generateMockDataset(
     return {
       ...input,
       transactionId,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       createdAt: now,
       updatedAt: now,
     };

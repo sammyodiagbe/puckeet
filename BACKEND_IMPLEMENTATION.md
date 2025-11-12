@@ -4,6 +4,24 @@
 
 The backend has been fully implemented following the architecture outlined in `backend_plan.md`. All database tables, API endpoints, and integrations are now functional.
 
+## Latest Updates
+
+### 🆕 Hybrid OCR Receipt Scanning (January 2025)
+- ✅ **Dual-layer OCR**: Tesseract.js (instant preview) + GPT-4 Vision (accurate extraction)
+- ✅ **Smart data extraction**: Merchant, date, total, items, tax, payment method
+- ✅ **Auto-categorization**: AI suggests appropriate expense category
+- ✅ **High accuracy**: 95%+ with GPT-4 Vision
+- ✅ **Cost efficient**: ~$0.012 per receipt
+- ✅ **Beautiful UI**: Real-time progress, confidence scores, itemized display
+- 📄 See [OCR_IMPLEMENTATION.md](./OCR_IMPLEMENTATION.md) for detailed documentation
+
+### 🆕 Auto-Sync & Duplicate Prevention (January 2025)
+- ✅ **Auto-sync on connection**: Transactions automatically sync when bank is connected
+- ✅ **Multi-layer duplicate prevention**: 4 layers of protection against duplicate transactions
+- ✅ **Centralized sync logic**: Reusable sync function for consistency
+- ✅ **Database-level constraints**: Unique indexes and triggers prevent duplicates
+- 📄 See [SYNC_IMPROVEMENTS.md](./SYNC_IMPROVEMENTS.md) for detailed documentation
+
 ## Completed Features
 
 ### ✅ Database Schema

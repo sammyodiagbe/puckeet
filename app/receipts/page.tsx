@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/app-layout";
 import gsap from "gsap";
 import { ReceiptUpload } from "@/components/receipt-upload";
 import { ReceiptViewerDialog } from "@/components/receipt-viewer-dialog";
+import { QRReceiptUpload } from "@/components/qr-receipt-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,7 @@ export default function ReceiptsPage() {
               Upload and manage your receipt documents
             </p>
           </div>
+          <QRReceiptUpload />
         </div>
 
         <div ref={uploadRef}>
