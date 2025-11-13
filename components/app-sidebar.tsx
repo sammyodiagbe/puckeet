@@ -10,6 +10,7 @@ import {
   Settings,
   CreditCard,
   User,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Transactions", href: "/transactions", icon: CreditCard },
   { name: "Receipts", href: "/receipts", icon: Receipt },
   { name: "Reports", href: "/reports", icon: FileText },
+  { name: "Exports", href: "/exports", icon: Download },
 ];
 
 const settings = [

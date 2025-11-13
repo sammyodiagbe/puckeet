@@ -7,7 +7,7 @@ import {
   ensureUserExists,
 } from "@/lib/api-helpers";
 import { updateUserSettingsSchema } from "@/lib/validations/user";
-import { currentUser } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * GET /api/user/settings
@@ -16,14 +16,15 @@ import { currentUser } from "@clerk/nextjs/server";
 export async function GET(request: NextRequest) {
   try {
     const userId = await requireAuth(request);
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return createErrorResponse("UNAUTHORIZED", "User not found", 401);
     }
 
     // Ensure user exists in database
-    await ensureUserExists(userId, user.emailAddresses[0]?.emailAddress || "", supabaseAdmin);
+    await ensureUserExists(userId, user.email || "", supabaseAdmin);
 
     const { data, error } = await supabaseAdmin
       .from("users")

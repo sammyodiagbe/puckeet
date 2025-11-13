@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
+import { createClient } from "@/utils/supabase/client";
+import { signOut } from "./actions/auth";
+import { User } from "@supabase/supabase-js";
 import {
   Receipt,
   CreditCard,
@@ -15,14 +17,85 @@ import {
   Zap,
   Shield,
   ArrowRight,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Pricing } from "@/components/ui/pricing";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const pricingPlans = [
+  {
+    name: "STARTER",
+    price: "0",
+    yearlyPrice: "0",
+    period: "per month",
+    features: [
+      "Up to 50 transactions/month",
+      "Basic receipt scanning",
+      "CSV export",
+      "Email support",
+      "1 bank connection",
+    ],
+    description: "Perfect for individuals starting their tax journey",
+    buttonText: "Start Free",
+    href: "/sign-up",
+    isPopular: false,
+  },
+  {
+    name: "PROFESSIONAL",
+    price: "19",
+    yearlyPrice: "15",
+    period: "per month",
+    features: [
+      "Unlimited transactions",
+      "Advanced OCR receipt scanning",
+      "Multiple export formats",
+      "Priority support",
+      "Up to 5 bank connections",
+      "Expense categorization",
+      "Custom tax reports",
+    ],
+    description: "Ideal for freelancers and small business owners",
+    buttonText: "Get Started",
+    href: "/sign-up",
+    isPopular: true,
+  },
+  {
+    name: "ENTERPRISE",
+    price: "49",
+    yearlyPrice: "39",
+    period: "per month",
+    features: [
+      "Everything in Professional",
+      "Unlimited bank connections",
+      "Dedicated account manager",
+      "Phone support",
+      "Custom integrations",
+      "Multi-user access",
+      "API access",
+      "Accountant collaboration",
+    ],
+    description: "For businesses with advanced tax preparation needs",
+    buttonText: "Contact Sales",
+    href: "/sign-up",
+    isPopular: false,
+  },
+];
+
 export default function Home() {
-  const { isSignedIn } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const heroRef = useRef<HTMLDivElement>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -30,6 +103,26 @@ export default function Home() {
   const buttonsRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const benefitsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     // Hero animations
@@ -96,6 +189,10 @@ export default function Home() {
     return () => ctx.revert();
   }, []);
 
+  async function handleSignOut() {
+    await signOut();
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -107,21 +204,42 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            {isSignedIn ? (
+            {loading ? (
+              <div className="h-10 w-20 animate-pulse rounded-md bg-muted" />
+            ) : user ? (
               <>
                 <Link href="/dashboard">
                   <Button variant="ghost">Dashboard</Button>
                 </Link>
-                <UserButton afterSignOutUrl="/" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <UserIcon className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">My Account</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
-                <SignInButton mode="modal">
+                <Link href="/sign-in">
                   <Button variant="ghost">Sign In</Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
+                </Link>
+                <Link href="/sign-up">
                   <Button>Get Started</Button>
-                </SignUpButton>
+                </Link>
               </>
             )}
           </div>
@@ -146,18 +264,18 @@ export default function Home() {
           </p>
         </div>
         <div ref={buttonsRef} className="flex flex-col gap-4 sm:flex-row">
-          {isSignedIn ? (
+          {user ? (
             <Link href="/dashboard">
               <Button size="lg" className="gap-2">
                 Go to Dashboard <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           ) : (
-            <SignUpButton mode="modal">
+            <Link href="/sign-up">
               <Button size="lg" className="gap-2">
                 Start Tracking Free <ArrowRight className="h-4 w-4" />
               </Button>
-            </SignUpButton>
+            </Link>
           )}
           <Button size="lg" variant="outline">
             Watch Demo
@@ -280,6 +398,15 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-20">
+        <Pricing
+          plans={pricingPlans}
+          title="Simple, Transparent Pricing"
+          description="Choose the plan that works for you&#10;All plans include secure data storage, automatic backups, and easy tax export features."
+        />
+      </section>
+
       {/* CTA Section */}
       <section className="container py-20">
         <Card className="border-primary/50 bg-primary/5">
@@ -291,18 +418,18 @@ export default function Home() {
               Join thousands of users who have simplified their expense
               tracking and tax preparation with TaxReady.
             </p>
-            {isSignedIn ? (
+            {user ? (
               <Link href="/dashboard">
                 <Button size="lg" className="gap-2">
                   Go to Dashboard <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             ) : (
-              <SignUpButton mode="modal">
+              <Link href="/sign-up">
                 <Button size="lg" className="gap-2">
                   Start Your Free Trial <ArrowRight className="h-4 w-4" />
                 </Button>
-              </SignUpButton>
+              </Link>
             )}
           </CardContent>
         </Card>

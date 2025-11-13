@@ -3,24 +3,34 @@
 import { useEffect } from "react";
 import { useCategoryStore } from "@/lib/stores/category-store";
 import { useUserStore } from "@/lib/stores/user-store";
-import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/utils/supabase/client";
 
 /**
  * Component that initializes app data on mount
- * - Syncs Clerk user with local user store
+ * - Syncs Supabase user with local user store
  * - Initializes default categories if they don't exist
  * - Can be extended to perform other initialization tasks
  */
 export function AppInitializer() {
-  const { user: clerkUser, isLoaded } = useUser();
-  const { syncWithClerk } = useUserStore();
+  const { syncWithSupabase } = useUserStore();
 
   useEffect(() => {
-    // Sync Clerk user with local store once Clerk is loaded
-    if (isLoaded) {
-      syncWithClerk(clerkUser);
-    }
-  }, [clerkUser, isLoaded, syncWithClerk]);
+    const supabase = createClient();
+
+    // Sync Supabase user with local store
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      syncWithSupabase(user);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncWithSupabase(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [syncWithSupabase]);
 
   useEffect(() => {
     // Initialize default categories on first load

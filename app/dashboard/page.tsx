@@ -30,10 +30,8 @@ import { useUserStore } from "@/lib/stores/user-store";
 import { format } from "date-fns";
 import Link from "next/link";
 import gsap from "gsap";
-import { useUser } from "@clerk/nextjs";
 
 export default function DashboardPage() {
-  const { user } = useUser();
   const { user: localUser } = useUserStore();
   const allTransactions = useTransactionStore((state) => state.transactions);
 
@@ -108,7 +106,7 @@ export default function DashboardPage() {
           </p>
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              Good Evening, {user?.firstName || 'there'}
+              Good Evening, {localUser?.name?.split(' ')[0] || localUser?.email?.split('@')[0] || 'there'}
             </h1>
             <div className="flex gap-3">
               <AddTransactionDialog>

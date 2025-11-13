@@ -5,9 +5,9 @@ import {
   requireAuth,
   createErrorResponse,
   createSuccessResponse,
+  ensureUserExists,
 } from "@/lib/api-helpers";
-import { currentUser } from "@clerk/nextjs/server";
-import { ensureUserExists } from "@/lib/api-helpers";
+import { createClient } from "@/utils/supabase/server";
 import { syncTransactionsFromPlaid } from "@/lib/plaid-sync";
 
 /**
@@ -68,14 +68,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = await requireAuth(request);
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return createErrorResponse("UNAUTHORIZED", "User not found", 401);
     }
 
     // Ensure user exists in database
-    await ensureUserExists(userId, user.emailAddresses[0]?.emailAddress || "", supabaseAdmin);
+    await ensureUserExists(userId, user.email || "", supabaseAdmin);
 
     const body = await request.json();
     const { public_token, account_id, metadata } = body;

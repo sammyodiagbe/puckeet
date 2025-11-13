@@ -16,7 +16,14 @@
       "mcp__supabase__get_advisors",
       "mcp__supabase__get_project",
       "mcp__supabase__get_project_url",
-      "mcp__supabase__get_anon_key"
+      "mcp__supabase__get_anon_key",
+      "Bash(npm update:*)",
+      "Bash(echo:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm uninstall:*)",
+      "WebFetch(domain:www.canada.ca)",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

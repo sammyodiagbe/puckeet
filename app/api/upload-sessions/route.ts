@@ -7,7 +7,7 @@ import {
   createSuccessResponse,
   ensureUserExists,
 } from "@/lib/api-helpers";
-import { currentUser } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * POST /api/upload-sessions
@@ -16,7 +16,8 @@ import { currentUser } from "@clerk/nextjs/server";
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireAuth(request);
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return createErrorResponse("UNAUTHORIZED", "User not found", 401);
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Ensure user exists in database
     await ensureUserExists(
       userId,
-      user.emailAddresses[0]?.emailAddress || "",
+      user.email || "",
       supabaseAdmin
     );
 

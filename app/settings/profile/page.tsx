@@ -7,12 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Crown } from "lucide-react";
 import { useUserStore } from "@/lib/stores/user-store";
-import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
 
 export default function ProfilePage() {
-  const { user: localUser } = useUserStore();
-  const { user: clerkUser } = useUser();
+  const { user } = useUserStore();
 
   return (
     <AppLayout>
@@ -34,29 +31,29 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-center mb-4">
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-primary-foreground text-3xl font-bold">
-                  {clerkUser?.firstName?.charAt(0) || localUser?.name?.charAt(0) || "U"}
+                  {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Full Name</p>
+                  <p className="text-sm text-muted-foreground mb-1">Name</p>
                   <p className="text-lg font-medium">
-                    {clerkUser?.firstName} {clerkUser?.lastName}
+                    {user?.name || "Not set"}
                   </p>
                 </div>
 
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Email Address</p>
                   <p className="text-lg font-medium">
-                    {clerkUser?.primaryEmailAddress?.emailAddress}
+                    {user?.email || "Not set"}
                   </p>
                 </div>
 
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">User ID</p>
                   <p className="text-sm font-mono text-muted-foreground">
-                    {clerkUser?.id}
+                    {user?.id}
                   </p>
                 </div>
               </div>
@@ -64,14 +61,8 @@ export default function ProfilePage() {
               <Separator />
 
               <p className="text-sm text-muted-foreground">
-                To update your name, email, or password, use the Clerk user management.
+                To update your email or password, contact support or use Supabase dashboard.
               </p>
-
-              <Link href="https://clerk.com/docs/users/overview" target="_blank">
-                <Button variant="outline" className="w-full">
-                  Manage Account with Clerk
-                </Button>
-              </Link>
             </CardContent>
           </Card>
 
@@ -86,7 +77,7 @@ export default function ProfilePage() {
                     <Crown className="h-5 w-5 text-yellow-500" />
                     <span className="font-semibold">Current Plan</span>
                   </div>
-                  <Badge className="capitalize">{localUser?.subscriptionTier}</Badge>
+                  <Badge className="capitalize">{user?.subscriptionTier}</Badge>
                 </div>
 
                 <Separator />
@@ -136,8 +127,8 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Clerk provides built-in security features including password management
-                  and two-factor authentication.
+                  Supabase provides built-in security features including password management
+                  and email verification.
                 </p>
 
                 <div className="space-y-3">
@@ -145,7 +136,7 @@ export default function ProfilePage() {
                     <div>
                       <p className="font-medium">Password Protection</p>
                       <p className="text-sm text-muted-foreground">
-                        Managed by Clerk
+                        Managed by Supabase Auth
                       </p>
                     </div>
                     <Badge variant="outline">Active</Badge>
@@ -155,11 +146,11 @@ export default function ProfilePage() {
                     <div>
                       <p className="font-medium">Email Verification</p>
                       <p className="text-sm text-muted-foreground">
-                        {clerkUser?.primaryEmailAddress?.verification?.status || "Unknown"}
+                        Verified
                       </p>
                     </div>
-                    <Badge variant={clerkUser?.primaryEmailAddress?.verification?.status === "verified" ? "default" : "outline"}>
-                      {clerkUser?.primaryEmailAddress?.verification?.status === "verified" ? "Verified" : "Pending"}
+                    <Badge variant="default">
+                      Verified
                     </Badge>
                   </div>
                 </div>

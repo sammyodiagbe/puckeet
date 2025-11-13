@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 /**
- * Get the authenticated user ID from Clerk
+ * Get the authenticated user ID from Supabase
  */
 export async function getAuthUserId(request: NextRequest): Promise<string | null> {
-  const { userId } = await auth();
-  return userId;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
 }
 
 /**
