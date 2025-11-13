@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { plaidClient, isPlaidConfigured } from "@/lib/plaid-client";
 import { PlaidTransactionData } from "@/lib/types";
+import { createClient } from "@/utils/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Check if Plaid is configured
     if (!isPlaidConfigured()) {
       return NextResponse.json(
@@ -16,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { accessToken, cursor, accountId } = body;
+    const { accessToken, cursor, accountId, bankConnectionId } = body;
 
     if (!accessToken) {
       return NextResponse.json(
@@ -54,14 +67,93 @@ export async function POST(request: NextRequest) {
       })
     );
 
+    // Save transactions to database
+    let savedCount = 0;
+    let skippedCount = 0;
+    const errors: string[] = [];
+
+    for (const plaidTxn of mappedTransactions) {
+      try {
+        // Check if transaction already exists
+        const { data: existing } = await supabase
+          .from("transactions")
+          .select("id")
+          .eq("plaid_transaction_id", plaidTxn.transaction_id)
+          .eq("user_id", user.id)
+          .single();
+
+        if (existing) {
+          skippedCount++;
+          continue; // Skip if already exists
+        }
+
+        // Get default "Uncategorized" category
+        const { data: category } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("name", "Uncategorized")
+          .eq("is_default", true)
+          .single();
+
+        // Insert new transaction
+        const { error: insertError } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: user.id,
+            date: plaidTxn.date,
+            amount: Math.abs(plaidTxn.amount), // Plaid uses negative for debits
+            description: plaidTxn.name,
+            merchant: plaidTxn.merchant_name || plaidTxn.name,
+            category_id: category?.id || null,
+            is_deductible: true, // Default to true, user can change later
+            status: "pending",
+            plaid_transaction_id: plaidTxn.transaction_id,
+            plaid_account_id: plaidTxn.account_id,
+            bank_connection_id: bankConnectionId || null,
+            tags: plaidTxn.category || [],
+            notes: plaidTxn.payment_channel
+              ? `Imported from bank via ${plaidTxn.payment_channel}`
+              : "Imported from bank",
+          });
+
+        if (insertError) {
+          console.error("Error inserting transaction:", insertError);
+          errors.push(`Failed to save transaction ${plaidTxn.transaction_id}`);
+        } else {
+          savedCount++;
+        }
+      } catch (err) {
+        console.error("Error processing transaction:", err);
+        errors.push(`Error processing transaction ${plaidTxn.transaction_id}`);
+      }
+    }
+
+    // Update bank connection cursor for incremental sync
+    if (bankConnectionId && syncResponse.data.next_cursor) {
+      await supabase
+        .from("bank_connections")
+        .update({
+          cursor: syncResponse.data.next_cursor,
+          last_sync_date: new Date().toISOString(),
+          status: "connected",
+          error_code: null,
+          error_message: null,
+        })
+        .eq("id", bankConnectionId)
+        .eq("user_id", user.id);
+    }
+
     return NextResponse.json({
       success: true,
-      transactions: mappedTransactions,
+      savedCount,
+      skippedCount,
+      totalFetched: mappedTransactions.length,
       cursor: syncResponse.data.next_cursor,
       hasMore: syncResponse.data.has_more,
       added: syncResponse.data.added.length,
       modified: syncResponse.data.modified.length,
       removed: syncResponse.data.removed.length,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error: any) {
     console.error("Error syncing transactions:", error);

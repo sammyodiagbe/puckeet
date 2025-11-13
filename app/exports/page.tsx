@@ -128,13 +128,14 @@ export default function ExportsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Tax Year Selection */}
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             <Label htmlFor="tax-year">Tax Year</Label>
             <Select
               value={taxYear.toString()}
               onValueChange={(value) => setTaxYear(parseInt(value))}
+              
             >
-              <SelectTrigger id="tax-year">
+              <SelectTrigger id="tax-year w-full">
                 <SelectValue placeholder="Select tax year" />
               </SelectTrigger>
               <SelectContent>
@@ -157,7 +158,7 @@ export default function ExportsPage() {
               value={format}
               onValueChange={(value: any) => setFormat(value)}
             >
-              <SelectTrigger id="format">
+              <SelectTrigger id="format w-full">
                 <SelectValue placeholder="Select format" />
               </SelectTrigger>
               <SelectContent>

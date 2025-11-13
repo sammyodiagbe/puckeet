@@ -3,23 +3,29 @@
 import { useEffect } from "react";
 import { useCategoryStore } from "@/lib/stores/category-store";
 import { useUserStore } from "@/lib/stores/user-store";
+import { useTransactionStore } from "@/lib/stores/transaction-store";
 import { createClient } from "@/utils/supabase/client";
 
 /**
  * Component that initializes app data on mount
  * - Syncs Supabase user with local user store
+ * - Loads transactions from database
  * - Initializes default categories if they don't exist
  * - Can be extended to perform other initialization tasks
  */
 export function AppInitializer() {
   const { syncWithSupabase } = useUserStore();
+  const { loadTransactions } = useTransactionStore();
 
   useEffect(() => {
     const supabase = createClient();
 
-    // Sync Supabase user with local store
+    // Sync Supabase user with local store and load transactions
     supabase.auth.getUser().then(({ data: { user } }) => {
       syncWithSupabase(user);
+      if (user) {
+        loadTransactions();
+      }
     });
 
     // Listen for auth changes
@@ -27,10 +33,13 @@ export function AppInitializer() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       syncWithSupabase(session?.user ?? null);
+      if (session?.user) {
+        loadTransactions();
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, [syncWithSupabase]);
+  }, [syncWithSupabase, loadTransactions]);
 
   useEffect(() => {
     // Initialize default categories on first load

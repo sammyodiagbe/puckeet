@@ -21,7 +21,6 @@ import { useUserStore } from "@/lib/stores/user-store";
 import { useTransactionStore } from "@/lib/stores/transaction-store";
 import { PlaidLink } from "@/components/plaid-link";
 import { BankLogo } from "@/components/bank-logo";
-import { mapPlaidTransactions, filterDuplicateTransactions } from "@/lib/plaid-utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { BankConnectionInput } from "@/lib/types";
@@ -36,7 +35,7 @@ export default function BankSyncPage() {
     getBankConnection,
   } = useSyncStore();
   const { user } = useUserStore();
-  const { transactions, addTransaction } = useTransactionStore();
+  const { loadTransactions } = useTransactionStore();
   const [showPlaidLink, setShowPlaidLink] = useState(false);
 
   const handlePlaidSuccess = (accounts: any[]) => {
@@ -90,6 +89,7 @@ export default function BankSyncPage() {
           accessToken: connection.plaidAccessToken,
           cursor: connection.cursor,
           accountId: connection.accountId,
+          bankConnectionId: connection.id,
         }),
       });
 
@@ -99,36 +99,29 @@ export default function BankSyncPage() {
         throw new Error(data.error || "Failed to sync transactions");
       }
 
-      // Map Plaid transactions to our format
-      const mappedTransactions = mapPlaidTransactions(
-        data.transactions,
-        bankId
-      );
-
-      // Filter out duplicates
-      const newTransactions = filterDuplicateTransactions(
-        transactions,
-        mappedTransactions
-      );
-
-      // Add transactions to store
-      if (user?.id) {
-        newTransactions.forEach((txn) => {
-          addTransaction(txn, user.id);
-        });
-      }
+      // Transactions are now saved directly by the API
+      // No need to map or filter - the backend handles everything
 
       // Update cursor and finish sync
       finishSync(bankId, true, data.cursor);
 
+      // Show success message with sync stats
+      const savedCount = data.savedCount || 0;
+      const skippedCount = data.skippedCount || 0;
+
       toast.success(
-        `Successfully synced ${newTransactions.length} new transaction${
-          newTransactions.length !== 1 ? "s" : ""
+        `Successfully synced ${savedCount} new transaction${
+          savedCount !== 1 ? "s" : ""
         }`,
         {
-          description: `${data.added} added, ${data.modified} modified, ${data.removed} removed`,
+          description: skippedCount > 0
+            ? `${savedCount} new, ${skippedCount} already existed`
+            : `${data.added || 0} fetched from bank`,
         }
       );
+
+      // Reload transactions from database
+      await loadTransactions();
     } catch (error: any) {
       console.error("Error syncing transactions:", error);
       finishSync(bankId, false, undefined, error.message);

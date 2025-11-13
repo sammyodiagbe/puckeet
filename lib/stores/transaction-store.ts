@@ -24,6 +24,7 @@ interface TransactionStore {
 
   // Utility
   setLoading: (isLoading: boolean) => void;
+  loadTransactions: () => Promise<void>;
 }
 
 export const useTransactionStore = create<TransactionStore>(
@@ -102,6 +103,47 @@ export const useTransactionStore = create<TransactionStore>(
         })),
 
       setLoading: (isLoading) => set({ isLoading }),
+
+      loadTransactions: async () => {
+        try {
+          set({ isLoading: true });
+
+          const response = await fetch("/api/transactions");
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch transactions");
+          }
+
+          const data = await response.json();
+
+          if (data.success && data.data?.transactions) {
+            // Map API response to store format
+            const transactions: Transaction[] = data.data.transactions.map((tx: any) => ({
+              id: tx.id,
+              userId: tx.user_id,
+              date: new Date(tx.date),
+              amount: parseFloat(tx.amount),
+              description: tx.description || "",
+              merchant: tx.merchant || "",
+              category: tx.category_id || "",
+              tags: tx.tags || [],
+              receiptIds: [],
+              notes: tx.notes || "",
+              isDeductible: tx.is_deductible ?? true,
+              status: tx.status || "pending",
+              createdAt: new Date(tx.created_at),
+              updatedAt: new Date(tx.updated_at),
+            }));
+
+            set({ transactions, isLoading: false });
+          } else {
+            set({ isLoading: false });
+          }
+        } catch (error) {
+          console.error("Error loading transactions:", error);
+          set({ isLoading: false });
+        }
+      },
     }),
     { name: "transactions-store", version: 2 }
   )
